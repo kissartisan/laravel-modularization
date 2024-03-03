@@ -19,14 +19,30 @@ class CartItemCollection
 
     public static function fromCheckoutData(array $data): CartItemCollection
     {
-        $cartItems = collect($data)->map(function (array $productDetails) {
-            return new CartItem(
-                ProductDto::fromEloquentModel(Product::find($productDetails['id'])),
-                $productDetails['quantity']
-            );
-        });
+		/** Version from screencast */
+//        $cartItems = collect($data)->map(function (array $productDetails) {
+//            return new CartItem(
+//                ProductDto::fromEloquentModel(Product::find($productDetails['id'])),
+//                $productDetails['quantity']
+//            );
+//        });
+//
+//        return new self($cartItems);
 
-        return new self($cartItems);
+		/** Optimized version */
+		$cartData = collect($data);
+		$products = Product::whereIn('id', $cartData->pluck('id'))->get();
+
+		$cartItems = $products->map(function(Product $productModel) use ($cartData) {
+			$cartItem = $cartData->where('id', $productModel->id)->first();
+
+			return new CartItem(
+				ProductDto::fromEloquentModel($productModel),
+				$cartItem->quantity
+			);
+		});
+
+		return new self($cartItems);
     }
 
     public static function fromProduct(ProductDto $product, int $quantity = 1): CartItemCollection
